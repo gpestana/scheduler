@@ -1,18 +1,23 @@
 var express = require('express'),
 http        = require('http'),
 config      = require('./config.js'),
+bodyParser  = require('body-parser'),
 
-manageDb    = require('./server/db/manageDb.js')
+manageDb    = require('./src/db/manageDb.js')
+dates       = require('./src/lib/dates.js')
 
-//configs. refactor to another file
+
+//TODO: configs. refactor to another file
 hbs         = require('hbs')
 
 server = express()
 server.listen(process.env.PORT || 3030)
+server.use(bodyParser.json())
 server.set('view engine', 'hbs')
 server.set('views', __dirname + '/server/views')
 hbs.registerPartials(__dirname + '/server/views/partials')
-server.use('/static', express.static(__dirname + '/public'))
+
+server.use('/static', express.static(__dirname + 'public'))
 
 
 
@@ -22,63 +27,99 @@ var app = function() {
 }
 
 
-//API
+
+
+//TODO: refactor API - move it to ./src/restApi.js
+
+//interface
 server.get('/', function(req, res){
-  res.send('hello world')
+  res.sendfile('public/index.html')
 })
+
+server.get('/dashboard/teacher/:id', function(req, res){
+  res.sendfile('public/teacher/index.html')
+})
+
+server.get('/dashboard/student/:id', function(req, res){
+  res.sendfile('public/student/index.html')
+})
+
+
+
+
 
 //list all teachers and their availabilities or of a particular teacher
-server.get('/teachers/:teacherID', function(req, res) {
-  var listTeachers = ''
-  //some db access
-  
-  res.json(listTeachers)
+server.get('/teachers', function(req, res) {
+  manageDb.listTeachers(function(items) {
+    res.json(items)
+  }) 
+ 
 })
 
-//get availability of a specific teacher
+//get alls slots of a specific teacher
 server.get('/teacher/:teacherID', function(req, res) {
-  var teacherSlots = ''
-  //some db access
-  
-  res.json(teacherSlots)
+  var id = req.params.teacherID
+  manageDb.getSlotsTeacher(id, function(slots){
+    res.json(slots)  
+  })
 })
 
 
 //teacher: add or remove availability
-server.post('/teacher', function(req, res){
+server.post('/teacher/slot', function(req, res){
   if(!req.body.hasOwnProperty('teacherID') || 
-     !req.body.hasOwnProperty('time')) {
+     !req.body.hasOwnProperty('time') ||
+     !req.body.hasOwnProperty('studentID')) {
     res.statusCode = 400;
     return res.send('[400] availability request not correct')
   }
   
   var teacherID = req.body.teacherID
   var time = req.body.time
- 
-  //check if teacher exists
+
+  var result = null
+  var errors = null
+
+  //TODO: check if teacher exists
 
   //check if time is correct
+  dates.check(time, function(err){
+    if(err) {
+      errors = 'wrong time type'      
+      res.json({'res':result, 'err':errors})
+      return
+    }
+  })
 
-  //check if time is scheduled already
-  var response = ''
-    //if yes: un-book it
-      //if slot is already scheduled, send an error saying that it cannot be
-      //un-booked
-    //if not book it
-  res.json(response)
+  var studentID = ''
+  manageDb.setSlot(teacherID, studentID, time, function(err, result){
+      errors = err
+      res.json({'res':result, 'err':errors})
+      return
+  })
 })
+
 
 
 
 //student
+server.get('/students', function(req, res){
+  manageDb.listStudents(function(items){
+    res.json(items)
+  })
+})
+
 server.get('/student/:studentID', function(req, res){
-  //check if student exists
-  //db to get booked classes
-  res.json(response)
+  var id = req.params.studentID
+  manageDb.getSlotsStudent(id, function(slots){
+    res.json(slots)  
+  })
 })
 
 
-server.post('/student/slots', function(req, res){
+
+//request book slot
+server.post('/student/slot', function(req, res){
   if(!req.body.hasOwnProperty('studentID') || 
      !req.body.hasOwnProperty('time') ||
      !req.body.hasOwnProperty('teacherID')) {
@@ -90,25 +131,34 @@ server.post('/student/slots', function(req, res){
   var time = req.body.time
   var teacherID = req.body.teacherID
 
-  //check if student and teacher exist
-  //check if time is available 
-  var response = ''  
-
-  res.json(response)
-})
-
-
-//sandbox
-server.get('/allStudents/', function(req, res) {
-  manageDb.listStudents(function(r){
-    console.log(r)
-    res.json(r)
+  var errors = ''
+  var result = ''
+  
+  //TODO: check if student and teacher exist
+  
+  //check if time is correct
+  dates.check(time, function(err){
+    if(err) {
+      errors = 'wrong time type'      
+      res.json({'res':result, 'err':errors})
+      return
+    }
   })
+
+  manageDb.setSlot(teacherID, studentID, time, function(err, result){
+      errors = err
+      res.json({'res':result, 'err':errors})
+      return
+  })
+
 })
 
-server.get('/addStudent', function(res, res) {
-  manageDb.addStudent('goncalo', function(){
-    console.log('goncalo added')
+
+
+//slots
+server.get('/slots', function(req, res){
+  manageDb.listSlots(function(slots){
+    res.json(slots)
   })
 })
 

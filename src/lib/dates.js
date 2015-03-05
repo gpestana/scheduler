@@ -1,4 +1,13 @@
 //YYYY.MM.DD.HH.MM
+
+var check = function(time, cb) {
+  var err = null
+  //check if time is correct
+
+  cb(err)
+}
+
+
 var isDate = function(dateInput, cb){
   var dateArr = dateInput.split('.')
   var res = true  
@@ -37,5 +46,6 @@ var stringToDate = function(dateString, cb) {
 }
 
 
+exports.check = check
 exports.isDate = isDate
 exports.isDateFuture = isDateFuture
