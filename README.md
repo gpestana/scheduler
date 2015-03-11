@@ -14,7 +14,7 @@
 
 <h5>Things I'd change now:</h5>
 - refactor index.js and take out the API endopoints from there
-- add confs (access to remote db, http init) to /confs/confs.js trim almost all conde from index.js
+- add confs (access to remote db, http init) to /confs/confs.js trim out almost all conde from index.js
 - keep db connection on instead of being always opening and closing connection once there's one request
 - use angular of other frontend MVC framework do and parse requests to backend 
 
